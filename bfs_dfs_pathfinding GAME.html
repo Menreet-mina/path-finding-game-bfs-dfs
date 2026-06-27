@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BFS & DFS Pathfinding Game</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+  header { background: #fff; border-bottom: 1px solid #e0e0d8; padding: 14px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; font-weight: 500; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: #eeedfe; color: #534AB7; border: 1px solid #afa9ec; }
+  main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .lbl { font-size: 13px; color: #666; }
+  select, button { font-size: 13px; padding: 7px 13px; border-radius: 8px; border: 1px solid #ccc; background: #fff; color: #1a1a1a; cursor: pointer; transition: background .15s; }
+  select:hover, button:hover { background: #f0f0ec; }
+  #btn-run { border-color: #185FA5; color: #185FA5; font-weight: 500; }
+  #btn-run:hover { background: #e6f1fb; }
+  .layout { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  canvas { display: block; border: 1px solid #ddd; border-radius: 12px; background: #fff; cursor: pointer; max-width: 100%; }
+  .side { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 10px; }
+  .card { background: #fff; border: 1px solid #e0e0d8; border-radius: 10px; padding: .85rem 1rem; }
+  .cl { font-size: 11px; color: #999; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; }
+  #smsg { font-size: 13px; color: #555; line-height: 1.6; min-height: 32px; }
+  #qbox, #pbox { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.8; word-break: break-all; min-height: 18px; color: #1a1a1a; }
+  .sg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sv { background: #f5f5f0; border-radius: 7px; padding: 8px 10px; }
+  .sv-n { font-size: 20px; font-weight: 500; color: #1a1a1a; }
+  .sv-k { font-size: 11px; color: #888; margin-top: 2px; }
+  .leg { display: flex; flex-direction: column; gap: 6px; }
+  .lr { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; }
+  .ld { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .info-bar { margin-top: 20px; padding: 14px 16px; background: #eeedfe; border-radius: 10px; border: 1px solid #afa9ec; }
+  .info-bar p { font-size: 13px; color: #3C3489; line-height: 1.6; }
+  .info-bar strong { font-weight: 500; }
+  footer { text-align: center; margin: 32px 0 16px; font-size: 12px; color: #aaa; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>BFS &amp; DFS Pathfinding</h1>
+  <span class="badge">Prolog concept: search</span>
+</header>
+
+<main>
+  <div class="controls">
+    <span class="lbl">Algorithm</span>
+    <select id="algo">
+      <option value="bfs">BFS — breadth-first search</option>
+      <option value="dfs">DFS — depth-first search</option>
+    </select>
+    <span class="lbl">Speed</span>
+    <select id="spd">
+      <option value="600">Slow</option>
+      <option value="300" selected>Normal</option>
+      <option value="80">Fast</option>
+    </select>
+    <button id="btn-run">Run</button>
+    <button id="btn-step">Step</button>
+    <button id="btn-reset">Reset</button>
+    <button id="btn-new">New graph</button>
+  </div>
+
+  <div class="layout">
+    <canvas id="cv"></canvas>
+    <div class="side">
+      <div class="card">
+        <div class="cl">Status</div>
+        <div id="smsg">Click a node to set start, then click another for goal.</div>
+      </div>
+      <div class="card">
+        <div class="cl">Queue / Stack</div>
+        <div id="qbox">—</div>
+      </div>
+      <div class="card">
+        <div class="cl">Path found</div>
+        <div id="pbox" style="color:#aaa">—</div>
+      </div>
+      <div class="card">
+        <div class="cl">Stats</div>
+        <div class="sg">
+          <div class="sv"><div class="sv-n" id="sv">0</div><div class="sv-k">visited</div></div>
+          <div class="sv"><div class="sv-n" id="ss">0</div><div class="sv-k">steps</div></div>
+          <div class="sv"><div class="sv-n" id="sp">—</div><div class="sv-k">path len</div></div>
+          <div class="sv"><div class="sv-n" id="sq">0</div><div class="sv-k">max queue</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="cl">Legend</div>
+        <div class="leg">
+          <div class="lr"><div class="ld" style="background:#3B6D11"></div>Start node</div>
+          <div class="lr"><div class="ld" style="background:#A32D2D"></div>Goal node</div>
+          <div class="lr"><div class="ld" style="background:#185FA5"></div>In queue / stack</div>
+          <div class="lr"><div class="ld" style="background:#854F0B"></div>Visited</div>
+          <div class="lr"><div class="ld" style="background:#534AB7"></div>Solution path</div>
+          <div class="lr"><div class="ld" style="background:#888780"></div>Unvisited</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-bar">
+    <p>
+      <strong>BFS</strong> uses a <strong>queue</strong> (first-in first-out) — explores all neighbors before going deeper. Always finds the shortest path.<br>
+      <strong>DFS</strong> uses a <strong>stack</strong> (last-in first-out) — dives deep along one branch first, like Prolog's backtracking search. May not find the shortest path.
+    </p>
+  </div>
+</main>
+
+<footer>Built to demonstrate Prolog search concepts &mdash; BFS &amp; DFS</footer>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = Math.min(520, window.innerWidth - 260);
+const H = Math.round(W * 0.85);
+cv.width = W; cv.height = H;
+
+let nodes=[], adj={};
+let startId=null, goalId=null, phase=0;
+let ns={}, frontier=[], vis={}, par={};
+let steps=0, qmax=0, sol=[], done=false, running=false, timer=null;
+
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+
+function makeGraph(){
+  nodes=[]; adj={};
+  const cols=4, rows=3;
+  const mx=Math.round(W*0.12), my=Math.round(H*0.13);
+  const cw=(W-mx*2)/(cols-1), rh=(H-my*2)/(rows-1);
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const id=r*cols+c;
+      nodes.push({id, x:mx+c*cw+ri(-14,14), y:my+r*rh+ri(-11,11), label:String.fromCharCode(65+id)});
+      adj[id]=[];
+    }
+  }
+  const seen=new Set();
+  function link(a,b){
+    const k=Math.min(a,b)+'-'+Math.max(a,b);
+    if(!seen.has(k)){seen.add(k);adj[a].push(b);adj[b].push(a);}
+  }
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const id=r*cols+c;
+      if(c+1<cols) link(id,id+1);
+      if(r+1<rows) link(id,id+cols);
+      if(c+1<cols&&r+1<rows&&Math.random()<0.4) link(id,id+cols+1);
+      if(c>0&&r+1<rows&&Math.random()<0.35) link(id,id+cols-1);
+    }
+  }
+  nodes.forEach(n=>{if(adj[n.id].length===0){const nb=(n.id+1)%nodes.length;link(n.id,nb);}});
+}
+
+function colOf(s){
+  return s==='start'?'#3B6D11':s==='goal'?'#A32D2D':s==='q'?'#185FA5':s==='vis'?'#854F0B':s==='path'?'#534AB7':'#888780';
+}
+
+function getEdges(){
+  const seen=new Set(), res=[];
+  nodes.forEach(n=>adj[n.id].forEach(nb=>{
+    const k=Math.min(n.id,nb)+'-'+Math.max(n.id,nb);
+    if(!seen.has(k)){seen.add(k);res.push([n.id,nb]);}
+  }));
+  return res;
+}
+
+function onSol(a,b){
+  for(let i=0;i<sol.length-1;i++)
+    if((sol[i]===a&&sol[i+1]===b)||(sol[i]===b&&sol[i+1]===a)) return true;
+  return false;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  getEdges().forEach(([a,b])=>{
+    const na=nodes[a],nb=nodes[b];
+    ctx.beginPath();ctx.moveTo(na.x,na.y);ctx.lineTo(nb.x,nb.y);
+    ctx.strokeStyle=onSol(a,b)?'#534AB7':'#ddd';
+    ctx.lineWidth=onSol(a,b)?2.5:1.5;ctx.stroke();
+  });
+  nodes.forEach(n=>{
+    const s=ns[n.id]||'u';
+    const r=(s==='start'||s==='goal')?19:15;
+    ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);
+    ctx.fillStyle=colOf(s);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#fff';
+    ctx.font=(s==='start'||s==='goal'?'600 ':'')+'12px -apple-system,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(n.label,n.x,n.y);
+  });
+}
+
+const smsg=document.getElementById('smsg');
+const qbox=document.getElementById('qbox');
+const pbox=document.getElementById('pbox');
+function setMsg(t){smsg.innerHTML=t;}
+function updStats(){
+  document.getElementById('sv').textContent=Object.keys(vis).length;
+  document.getElementById('ss').textContent=steps;
+  document.getElementById('sq').textContent=qmax;
+}
+function updQueue(){
+  if(!frontier.length){qbox.textContent='(empty)';return;}
+  const algo=document.getElementById('algo').value;
+  const names=frontier.map(i=>nodes[i].label);
+  qbox.innerHTML='<span style="color:#888">'+(algo==='bfs'?'Queue':'Stack')+':</span> ['+names.join(', ')+']'+(algo==='dfs'?' ← top':'');
+}
+
+function initSearch(){
+  frontier=[];vis={};par={};steps=0;qmax=0;sol=[];done=false;
+  ns={};
+  ns[startId]='start';ns[goalId]='goal';
+  vis[startId]=true;frontier.push(startId);
+  updQueue();updStats();draw();
+}
+
+function buildPath(end){
+  const p=[end];let c=end;
+  while(par[c]!==undefined){c=par[c];p.unshift(c);}
+  return p;
+}
+
+function doStep(){
+  if(done) return false;
+  if(!frontier.length){setMsg('No path exists between these nodes.');done=true;running=false;return false;}
+  const algo=document.getElementById('algo').value;
+  const cur=algo==='bfs'?frontier.shift():frontier.pop();
+  steps++;
+  if(ns[cur]!=='start'&&ns[cur]!=='goal') ns[cur]='vis';
+  if(cur===goalId){
+    done=true;running=false;
+    sol=buildPath(cur);
+    sol.forEach(n=>{if(ns[n]!=='start'&&ns[n]!=='goal') ns[n]='path';});
+    setMsg(algo.toUpperCase()+' found a path in <strong>'+steps+'</strong> steps!');
+    pbox.textContent=sol.map(i=>nodes[i].label).join(' → ');
+    pbox.style.color='#534AB7';
+    document.getElementById('sp').textContent=sol.length-1;
+    updQueue();updStats();draw();
+    return false;
+  }
+  adj[cur].slice().sort((a,b)=>a-b).forEach(nb=>{
+    if(!vis[nb]){vis[nb]=true;par[nb]=cur;frontier.push(nb);if(ns[nb]!=='goal') ns[nb]='q';}
+  });
+  if(frontier.length>qmax) qmax=frontier.length;
+  setMsg((document.getElementById('algo').value==='bfs'?'BFS — level by level. Current: ':'DFS — depth first. Current: ')+'<strong>'+nodes[cur].label+'</strong>');
+  updQueue();updStats();draw();
+  return true;
+}
+
+function runSearch(){
+  if(running){running=false;clearTimeout(timer);return;}
+  if(startId===null){setMsg('Select a start node first.');return;}
+  if(goalId===null){setMsg('Select a goal node first.');return;}
+  if(done){softReset();return;}
+  if(!frontier.length) initSearch();
+  running=true;
+  const delay=parseInt(document.getElementById('spd').value);
+  function tick(){if(!running)return;if(doStep()) timer=setTimeout(tick,delay);else running=false;}
+  tick();
+}
+
+function stepOnce(){
+  if(startId===null){setMsg('Select a start node first.');return;}
+  if(goalId===null){setMsg('Select a goal node first.');return;}
+  if(running){running=false;clearTimeout(timer);return;}
+  if(done){softReset();return;}
+  if(!frontier.length) initSearch();
+  doStep();
+}
+
+function softReset(){
+  clearTimeout(timer);running=false;done=false;
+  frontier=[];vis={};par={};steps=0;qmax=0;sol=[];
+  ns={};
+  if(startId!==null) ns[startId]='start';
+  if(goalId!==null) ns[goalId]='goal';
+  qbox.textContent='—';pbox.textContent='—';pbox.style.color='#aaa';
+  document.getElementById('sp').textContent='—';
+  updStats();
+  if(startId!==null&&goalId!==null) setMsg('Ready. Press <strong>Run</strong> or <strong>Step</strong>.');
+  else setMsg('Click a node to set start, then click another for goal.');
+  draw();
+}
+
+function fullReset(){
+  startId=null;goalId=null;phase=0;softReset();
+  setMsg('Click a node to set start, then click another for goal.');
+}
+
+function nodeAt(mx,my){return nodes.find(n=>Math.hypot(n.x-mx,n.y-my)<22);}
+
+cv.addEventListener('click',function(e){
+  if(running) return;
+  const rect=cv.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(cv.width/rect.width);
+  const my=(e.clientY-rect.top)*(cv.height/rect.height);
+  const n=nodeAt(mx,my);
+  if(!n) return;
+  if(phase===0){
+    startId=n.id;goalId=null;phase=1;ns={};ns[startId]='start';
+    frontier=[];vis={};par={};steps=0;qmax=0;sol=[];done=false;
+    qbox.textContent='—';pbox.textContent='—';pbox.style.color='#aaa';
+    document.getElementById('sp').textContent='—';updStats();
+    setMsg('Start: <strong>'+n.label+'</strong>. Now click a goal node.');draw();
+  } else if(phase===1&&n.id!==startId){
+    goalId=n.id;phase=2;ns[goalId]='goal';
+    setMsg('Goal: <strong>'+n.label+'</strong>. Press <strong>Run</strong> or <strong>Step</strong>.');draw();
+  } else if(phase===2){
+    fullReset();startId=n.id;phase=1;ns={};ns[startId]='start';
+    setMsg('Start: <strong>'+n.label+'</strong>. Now click a goal node.');draw();
+  }
+});
+
+document.getElementById('btn-run').addEventListener('click', runSearch);
+document.getElementById('btn-step').addEventListener('click', stepOnce);
+document.getElementById('btn-reset').addEventListener('click', softReset);
+document.getElementById('btn-new').addEventListener('click', ()=>{makeGraph();fullReset();});
+
+makeGraph(); draw();
+</script>
+</body>
+</html>
