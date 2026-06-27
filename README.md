@@ -7,6 +7,7 @@ The project provides a visual representation of how search algorithms explore no
 ---
 
 ## Project Overview
+<img width="1366" height="617" alt="image" src="https://github.com/user-attachments/assets/952389be-9f8c-471c-86b8-4b409d7b2def" />
 
 This project implements graph traversal algorithms in JavaScript and visualizes their behavior using an interactive graph.
 
